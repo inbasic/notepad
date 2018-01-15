@@ -1,0 +1,51 @@
+#sidebar-button {
+  cursor: pointer;
+  position: absolute;
+  right: 3px;
+  top: 5px;
+  z-index: 2;
+  padding: 0 5px 2px 5px;
+  font-size: 140%;
+}
+#sidebar-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+#sidebar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 300px;
+  background-color: #f1f1f1;
+  border-right: solid 1px #c5c5c5;
+  transition: all 300ms ease;
+  transition-property: transform, opacity;
+  opacity: 0;
+  transform: translateX(100%);
+  z-index: 3;
+}
+#sidebar[data-open=true] {
+  transform: translateX(0);
+  opacity: 1;
+}
+#sidebar ul {
+  margin: 0;
+  padding: 0;
+}
+
+#sidebar #tree {
+  overflow: auto;
+  padding: 0 10px;
+  user-select: none;
+}
+#sidebar #tree [data-vtree-id^=notebook-]>a {
+  color: #8995a8;
+}
+#sidebar [data-id=toolbox] {
+  padding: 5px 0;
+}
+
+#sidebar [data-id=details] {
+  border: none;
+  border-top: dotted 1px #000;
+}

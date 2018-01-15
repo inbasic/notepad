@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="editor.css"/>
+  <link rel="stylesheet" href="vanillatree/vanillatree.css"/>
+  <link rel="stylesheet" href="sidebar.css"/>
+  <link rel="stylesheet" href="medium-style-confirm/css/msc-style.css"/>
+  <meta charset="utf-8">
+</head>
+<body>
+  <!-- sidebar -->
+  <a id="sidebar-button"><span>☰</span></a>
+  <div id="sidebar" data-oepn=false vbox>
+    <div data-id="toolbox" hbox>
+      &nbsp;<input type="button" value="New Note" data-cmd="new-note">
+      &nbsp;<input type="button" value="New Notebook" data-cmd="new-notebook">
+      &nbsp;<input type="button" value="Delete" data-cmd="delete">
+    </div>
+    <div id="tree" flex="1"></div>
+    <fieldset data-id="details">
+        <legend>details:</legend>
+        <form hbox align=center>
+          name:&nbsp;
+          <input type="textbox" data-id="name" flex="1">&nbsp;
+          <input type="submit" value="Save">
+        </form>
+      </fieldset>
+  </div>
+  <!-- editor -->
+  <textarea data-visible=false></textarea>
+
+  <script src="./tinymce/js/tinymce/tinymce.min.js"></script>
+  <link rel="stylesheet" href="tinymce.css">
+
+  <script src="vanillatree/vanillatree.js"></script>
+
+  <script src="../../webext/utils/EventEmitter.js"></script>
+  <script src="../../webext/utils/debounce.js"></script>
+  <script src="../../webext/core/base.js"></script>
+  <script src="../../webext/core/chrome.storage.js"></script>
+  <script src="../../webext/core/chrome.runtime.js"></script>
+  <script src="medium-style-confirm/js/msc-script.js"></script>
+  <script src="api.js"></script>
+  <script src="tinymce.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

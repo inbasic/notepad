@@ -1,0 +1,44 @@
+body {
+  overflow: hidden;
+  font-family: "Helvetica Neue",Helvetica,sans-serif;
+  font-size: 13px;
+}
+input[type=button] {
+  cursor: pointer;
+}
+input {
+  outline: none;
+  border: solid 1px #ccc;
+  border-radius: 0;
+  box-sizing: border-box;
+  height: 24px;
+  background-color: #fff;
+}
+
+[data-visible="false"] {
+  display: none;
+}
+
+[hbox] {
+  display: flex;
+  flex-direction: row;
+}
+[vbox] {
+  display: flex;
+  flex-direction: column;
+}
+[flex="1"] {
+  flex: 1;
+}
+[pack=center] {
+  justify-content: center;
+}
+[pack=end] {
+  justify-content: flex-end;
+}
+[align=center] {
+  align-items: center;
+}
+[align=end] {
+  align-items: flex-end;
+}
