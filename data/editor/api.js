@@ -25,3 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     id
   }));
 });
+
+// confirm
+api.user = {
+  confirm: (title, description) => new Promise(resolve => window.mscConfirm(title, description, resolve)),
+  alert: (title, description) => window.mscAlert(title, description)
+};

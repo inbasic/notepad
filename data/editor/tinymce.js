@@ -8,18 +8,24 @@ tinymce.init({
   branding: false,
   menubar: 'edit insert view format',
   paste_data_images: false,
+  toolbar: 'undo redo | styleselect | bold italic | ' +
+    'forecolor backcolor | ' +
+    'alignleft aligncenter alignright alignjustify | ' +
+    'bullist numlist outdent indent | link image',
   plugins: [
-    'charmap searchreplace insertdatetime table'
+    'charmap searchreplace insertdatetime table lists advlist',
+    'textcolor colorpicker'
   ]
 });
 tinymce.on('AddEditor', e => {
   editor.instance = e.editor;
   e.editor.on('Init', e => {
     webext.storage.get({
-      selected: 'note--1',
-    }).then(({selected}) => {
-      editor.update.content(selected);
-      editor.update.title(selected);
+      'selected-note': 'note--1',
+    }).then(prefs => {
+      const id = prefs['selected-note'];
+      editor.update.content(id);
+      editor.update.title(id);
       editor.emit('init', e);
       editor.instance.focus();
       editor.instance.on('Change', debounce(e => editor.emit('change', e), 1000));
@@ -34,12 +40,12 @@ editor.write = (
   id = editor.id,
   content = editor.instance.getContent(),
   bookmark = editor.instance.selection.getBookmark(2, true)
-) => webext.runtime.sendMessage({
+) => new Promise(resolve => webext.runtime.sendMessage({
   method: 'save-note',
   id,
   content: content,
   bookmark
-});
+}, resolve));
 editor.on('change', () => editor.id && editor.write());
 editor.on('selection', () => {
   const id = editor.id;
@@ -72,7 +78,9 @@ editor.update.content = id => webext.storage.get({
 });
 editor.update.title = id => api.note.get(id).then(notes => {
   editor.emit('updating', id);
-  document.title = notes.map(n => n.name).join('/');
+  const note = notes.pop();
+  editor.id = note.id; // if not is untracked, removes the id
+  document.title = '[' + note.name + '] - /' + notes.map(n => n.name).join('/');
 });
 
 // unbeforeunload
@@ -87,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
   sidebar.on('selected', id => {
     editor.update.content(id);
     editor.update.title(id);
+    webext.storage.set({
+      'selected-note': id
+    });
   }).if(id => id.startsWith('note-') && id !== editor.id);
   // when note's name is selected
-  sidebar.on('name-changed', editor.update.title).if(id => editor.id === id);
+  sidebar.on('name-changed', note => editor.update.title(note.id)).if(note => editor.id === note.id);
 });

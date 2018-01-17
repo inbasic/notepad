@@ -4,13 +4,16 @@
 // notepad lazy internals
 var ports = [];
 
-webext.runtime.on('message', ({id, content, bookmark}) => webext.storage.set({
-  [id + '-content']: content,
+webext.runtime.on('message', ({id, content, bookmark}, sender, response) => {
+  webext.storage.set({
+    [id + '-content']: content,
+    [id + '-bookmark']: bookmark
+  }).then(response);
+  return true;
+}).if(({method}) => method === 'save-note');
+webext.runtime.on('message', ({id, bookmark}, sender, response) => webext.storage.set({
   [id + '-bookmark']: bookmark
-})).if(({method}) => method === 'save-note');
-webext.runtime.on('message', ({id, bookmark}) => webext.storage.set({
-  [id + '-bookmark']: bookmark
-})).if(({method}) => method === 'save-bookmark');
+}).then(response)).if(({method}) => method === 'save-bookmark');
 webext.runtime.on('message', ({id}) => webext.storage.remove([
   id + '-content',
   id + '-bookmark'
@@ -91,8 +94,9 @@ var menu = () => {
     const items = headers.filter(h => h.id.startsWith('note-')).map(h => ({
       type: 'normal',
       id: h.id,
-      title: (h.parent ? cache[h.parent].name + '/' + h.name : h.name) || 'no name',
-      contexts: ['selection']
+      title: (h.parent && cache[h.parent] ? cache[h.parent].name + '/' + h.name : h.name) || 'no name',
+      contexts: ['selection'],
+      documentUrlPatterns: ['*://*/*']
     }));
     // browser-action
     items.push({

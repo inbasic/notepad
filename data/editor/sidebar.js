@@ -1,7 +1,8 @@
-/* globals VanillaTree, editor, webext, EventEmitter, api, mscConfirm */
+/* globals VanillaTree, editor, webext, EventEmitter, api */
 'use strict';
 
 var sidebar = new EventEmitter();
+sidebar.selected = {};
 
 // open and close
 {
@@ -22,9 +23,11 @@ var sidebar = new EventEmitter();
   });
 }
 // content
-const tree = new VanillaTree('#tree', {
-  placeholder: 'Loading...',
+var tree = new VanillaTree('#tree', {
+  placeholder: 'to prevent losing your content, create a new note right now.',
 });
+sidebar.root = tree.tree;
+
 sidebar.notes = () => webext.storage.get({
   selected: 'note--1',
   headers: [{
@@ -37,44 +40,77 @@ sidebar.notes = () => webext.storage.get({
   return h;
 }));
 
+sidebar.save = (...changes) => sidebar.notes().then(headers => {
+  // update existing headers
+  headers = headers.map(h => {
+    const e = changes.filter(e => e.id === h.id).shift();
+    if (e) {
+      sidebar.cache[e.id] = e;
+    }
+    return e || h;
+  });
+  // add new headers
+  changes.filter(h => !sidebar.cache[h.id]).forEach(h => {
+    sidebar.cache[h.id] = h;
+    headers.push(h);
+  });
+
+  return webext.storage.set({
+    headers
+  });
+});
+
 sidebar.cache = {};
 
 sidebar.once('open', () => sidebar.notes().then(headers => {
-  headers.forEach(header => {
-    sidebar.cache[header.id] = header;
-    tree.add({
-      label: header.name,
-      id: header.id,
-      selected: header.selected,
-      parent: header.parent
-    });
-  });
+  const max = headers.length * 3;
+  let i = 0;
+  const one = () => {
+    i += 1;
+    const header = headers.shift();
+    if (header) {
+      if (i > max) {  // if parent is not detected, add to root
+        delete header.parent;
+      }
+      if (header.parent && !sidebar.cache[header.parent]) {
+        headers.push(header);
+      }
+      else {
+        sidebar.cache[header.id] = header;
+        tree.add({
+          label: header.name,
+          id: header.id,
+          selected: header.selected,
+          parent: header.parent
+        });
+      }
+      one();
+    }
+  };
+  one();
+  // open selected note;
   let parent = sidebar.selected;
-  while (parent) {
+  while (parent && parent.id) {
     tree.open(parent.id);
     parent = sidebar.cache[parent.parent];
   }
-})).if(v => v);
+})).if(status => status === true);
 
 // events
-tree.tree.addEventListener('vtree-select', ({detail}) => {
-  sidebar.selected = sidebar.cache[detail.id];
+sidebar.root.addEventListener('vtree-select', ({detail}) => {
+  sidebar.selected = sidebar.cache[detail.id] || {};
   sidebar.emit('selected', detail.id);
   webext.storage.set({
     selected: detail.id
   });
 });
 
+// get closest notebook
+sidebar.parent = n => n.id ? (n.id.startsWith('notebook-') ? n.id : n.parent) : null;
 // add a new note
-sidebar.parent = n => {
-  if (n.id.startsWith('notebook-')) {
-    return n.id;
-  }
-  return n.parent;
-};
-
 sidebar.add = {
-  note: (name = 'new note') => sidebar.notes().then(headers => {
+  note: (name, content = false) => {
+    name = name || 'new note';
     const note = {
       name,
       id: 'note-' + Math.random(),
@@ -87,15 +123,22 @@ sidebar.add = {
       tree.open(note.parent);
     }
 
-    headers.push(note);
-    sidebar.cache[note.id] = note;
-    webext.storage.set({headers}).then(() => tree.add(Object.assign({
-      label: name
-    }, note)));
+    sidebar.save(note).then(() => {
+      const next = () => tree.add(Object.assign({
+        label: name
+      }, note));
+      if (content) {
+        editor.write(note.id).then(next);
+      }
+      else {
+        next();
+      }
+    });
 
     return note;
-  }),
-  notebook: (name = 'new notebook') => sidebar.notes().then(headers => {
+  },
+  notebook: (name, content = false) => {
+    name = name || 'new notebook';
     const parent = sidebar.parent(sidebar.selected);
     const notebook = {
       name,
@@ -104,15 +147,16 @@ sidebar.add = {
       selected: true,
       opened: true
     };
-    headers.push(notebook);
-    sidebar.cache[notebook.id] = notebook;
-    tree.add(Object.assign({
-      label: name
-    }, notebook));
-    webext.storage.set({headers}).then(() => sidebar.add.note());
+
+    sidebar.save(notebook).then(() => {
+      tree.add(Object.assign({
+        label: name
+      }, notebook));
+      sidebar.add.note(null, content);
+    });
 
     return notebook;
-  })
+  }
 };
 sidebar.delete = {};
 sidebar.delete.note = (id = sidebar.selected.id, del = true) => {
@@ -134,18 +178,26 @@ sidebar.delete.note = (id = sidebar.selected.id, del = true) => {
       if (id === sidebar.selected.id) {
         editor.id = null;
         editor.update.title(null);
+        sidebar.selected = {};
       }
+      sidebar.emit('deleted', [id]);
     });
   };
   if (del) {
-    mscConfirm('Delete', `Are you sure you want to delete "${sidebar.cache[id].name}"? This action is irreversible.`, perform);
+    api.user.confirm(
+      'Delete',
+      `Are you sure you want to delete "${sidebar.cache[id].name}"? This action is irreversible.`
+    ).then(perform);
   }
   else {
     perform();
   }
 };
 sidebar.delete.notebook = (id = sidebar.selected.id) => {
-  mscConfirm('Delete', `Are you sure you want ot delete "${sidebar.cache[id].name}" and all its child notes? This action is irreversible."`, () => {
+  api.user.confirm(
+    'Delete',
+    `Are you sure you want ot delete "${sidebar.cache[id].name}" and all its child notes? This action is irreversible.`
+  ).then(() => {
     const ids = [...tree.getChildList(id).querySelectorAll('[data-vtree-id]')].map(e => e.dataset.vtreeId);
     const notebooks = [id, ...ids.filter(i => i.startsWith('notebook-'))];
     const notes = ids.filter(i => i.startsWith('note-'));
@@ -162,11 +214,15 @@ sidebar.delete.notebook = (id = sidebar.selected.id) => {
     if (ids.indexOf(editor.id) !== -1) {
       editor.id = null;
       editor.update.title(null);
-      sidebar.selected = null;
+      sidebar.selected = {};
     }
-    else {
+    if (id === sidebar.selected.id) {
+      sidebar.selected = {};
+    }
+    if (editor.id) {
       tree.select(editor.id);
     }
+    sidebar.emit('deleted', ids);
   });
 };
 
@@ -179,27 +235,25 @@ api.notebook.add = sidebar.add.notebook;
 // details
 {
   const name = document.querySelector('#sidebar [data-id=details] [data-id=name]');
+  const del = document.querySelector('#sidebar [data-cmd="delete"]');
+  const save = document.querySelector('#sidebar [type="submit"]');
   sidebar.on('selected', id => {
     name.value = sidebar.cache[id].name;
+    name.select();
+    name.focus();
+    del.disabled = save.disabled = false;
   });
   document.querySelector('#sidebar [data-id=details]').addEventListener('submit', e => {
     e.preventDefault();
     const label = name.value || 'no name';
     document.querySelector('#tree .vtree-selected a').textContent = label;
-    const id = sidebar.selected.id;
-    sidebar.notes().then(headers => {
-      let index = -1;
-      for (let i = 0; i < headers.length; i += 1) {
-        if (headers[i].id === id) {
-          index = i;
-        }
-      }
-      headers[index].name = label;
-      sidebar.selected.name = label;
-      sidebar.cache[id].name = label;
-      webext.storage.set({headers});
-      sidebar.emit('name-changed', id, label);
-    });
+    sidebar.selected.name = label;
+
+    sidebar.save(sidebar.selected).then(() => sidebar.emit('name-changed', sidebar.selected));
+  });
+
+  sidebar.on('deleted', () => {
+    del.disabled = save.disabled = sidebar.root.querySelector('.vtree-selected') === null;
   });
 }
 
@@ -207,10 +261,10 @@ api.notebook.add = sidebar.add.notebook;
 document.querySelector('#sidebar [data-id=toolbox]').addEventListener('click', ({target}) => {
   const cmd = target.dataset.cmd;
   if (cmd === 'new-note') {
-    sidebar.add.note();
+    sidebar.add.note(null, editor.id ? null : true);
   }
   else if (cmd === 'new-notebook') {
-    sidebar.add.notebook();
+    sidebar.add.notebook(null, editor.id ? null : true);
   }
   else if (cmd === 'delete') {
     if (sidebar.selected.id.startsWith('note-')) {
@@ -222,16 +276,32 @@ document.querySelector('#sidebar [data-id=toolbox]').addEventListener('click', (
   }
 });
 
-// api
-api.note.get = id => id ? sidebar.notes().then(headers => {
-  let parent = headers.filter(h => h.id === id).shift();
-  const list = [];
-  while (parent) {
-    list.unshift(parent);
-    parent = sidebar.cache[parent.parent];
+// api (sidebar might not yet be loaded)
+api.note.get = id => {
+  const empty = Promise.resolve([{
+    name: '* untracked note',
+    id: null
+  }]);
+
+  if (id) {
+    return sidebar.notes().then(headers => {
+      let parent = headers.filter(h => h.id === id).shift();
+      if (parent) {
+        const cache = headers.reduce((p, c) => {
+          p[c.id] = c;
+          return p;
+        }, {});
+        const list = [];
+        while (parent) {
+          list.unshift(parent);
+          parent = cache[parent.parent];
+        }
+        return list;
+      }
+      return empty;
+    });
   }
-  return list;
-}) : Promise.resolve([{
-  name: '* untracked note',
-  id
-}]);
+  else {
+    return empty;
+  }
+};

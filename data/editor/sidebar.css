@@ -49,3 +49,16 @@
   border: none;
   border-top: dotted 1px #000;
 }
+
+#sidebar [data-id=name] {
+  padding: 0 3px;
+}
+
+#sidebar input:disabled {
+  opacity: 0.5;
+}
+
+/* drag and drop */
+#sidebar a.dragged:before {
+  content: '........';
+}
