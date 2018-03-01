@@ -18,6 +18,9 @@ api.port.onMessage.addListener(request => {
   if (request.method === 'append-content') {
     editor.instance.insertContent(request.content);
   }
+  else if (request.method === 'close') {
+    window.close();
+  }
 });
 document.addEventListener('DOMContentLoaded', () => {
   editor.on('updating', id => api.port.postMessage({

@@ -6,7 +6,13 @@ var editor = new EventEmitter();
 tinymce.init({
   selector:'textarea',
   branding: false,
-  menubar: 'edit insert view format',
+  menu : {
+    notepad: {title : 'Notepad', items : 'skin | options | save'},
+    edit   : {title : 'Edit', items : 'undo redo | cut copy paste pastetext | selectall | searchreplace'},
+    insert : {title : 'Insert', items : 'insertdatetime | charmap | inserttable tableprops deletetable cell row column'},
+    view   : {title : 'View', items : 'visualaid'},
+    format : {title : 'Format', items : 'bold italic underline strikethrough superscript subscript code | formats | removeformat'}
+  },
   paste_data_images: false,
   toolbar: 'undo redo | styleselect | bold italic | ' +
     'forecolor backcolor | ' +
@@ -14,11 +20,52 @@ tinymce.init({
     'bullist numlist outdent indent | link image',
   plugins: [
     'charmap searchreplace insertdatetime table lists advlist',
-    'textcolor colorpicker'
-  ]
+    'textcolor colorpicker code save'
+  ],
+  skin: (localStorage.getItem('skin') || ''),
+  setup: function(editor) {
+    // shortcuts
+    editor.shortcuts.add('access+s', 'Toggle sidebar', () => sidebar.emit('toggle'));
+    // menu
+    editor.addMenuItem('options', {
+      text: 'Options',
+      onclick: () => chrome.runtime.openOptionsPage()
+    });
+    editor.addMenuItem('save', {
+      text: 'Save',
+      cmd: 'mceSave',
+      disabled: true,
+      onPostRender: function() {
+        const self = this;
+        editor.on('nodeChange', function() {
+          self.disabled(editor.getParam('save_enablewhendirty', true) && !editor.isDirty());
+        });
+      }
+    });
+    editor.addMenuItem('skin', {
+      text: 'Skin',
+      menu:[{
+        text:'Default Skin',
+        onclick: () => {
+          localStorage.setItem('skin', '');
+          editor.windowManager.alert('Please close and reopen the editor.');
+        }
+      }, {
+        text:'Dark Skin',
+        onclick: () => {
+          localStorage.setItem('skin', 'charcoal');
+          editor.windowManager.alert('Please close and reopen the editor.');
+        }
+      }]
+    });
+  },
+  save_onsavecallback: function () {
+    editor.write();
+  }
 });
 tinymce.on('AddEditor', e => {
   editor.instance = e.editor;
+
   e.editor.on('Init', e => {
     webext.storage.get({
       'selected-note': 'note--1',
@@ -30,6 +77,11 @@ tinymce.on('AddEditor', e => {
       editor.instance.focus();
       editor.instance.on('Change', debounce(e => editor.emit('change', e), 1000));
       editor.instance.on('NodeChange', debounce(e => editor.emit('selection', e), 1000));
+
+      const style = localStorage.getItem('editor-css');
+      if (style) {
+        editor.instance.getBody().style = style;
+      }
     });
   });
   e.editor.on('Click', e => editor.emit('click', e));
@@ -46,7 +98,7 @@ editor.write = (
   content: content,
   bookmark
 }, resolve));
-editor.on('change', () => editor.id && editor.write());
+// editor.on('change', () => editor.id && editor.write());
 editor.on('selection', () => {
   const id = editor.id;
   const bookmark = editor.instance.selection.getBookmark(2, true);
@@ -66,7 +118,7 @@ editor.update.content = id => webext.storage.get({
 }).then(prefs => {
   const instance = editor.instance;
   if (editor.id && instance.isDirty()) {
-    editor.write();
+    editor.instance.execCommand('mceSave');
   }
 
   instance.setContent(prefs[id + '-content']);

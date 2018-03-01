@@ -56,16 +56,33 @@ webext.runtime.on('connect', port => {
 });
 
 // browser action UI opening
-webext.browserAction.on('clicked', () => webext.storage.get({
+webext.browserAction.on('clicked', tab => webext.storage.get({
   mode: 'tab',
   width: 800,
   height: 600,
+  'content-height': 300,
   left: screen.availLeft + Math.round((screen.availWidth - 700) / 2),
   top: screen.availTop + Math.round((screen.availHeight - 500) / 2)
 }).then(prefs => {
   if (prefs.mode === 'tab') {
     webext.tabs.single({
       url: '/data/editor/index.html'
+    });
+  }
+  else if (prefs.mode === 'application-content') {
+    chrome.windows.get(tab.windowId, win => {
+      chrome.windows.update(tab.windowId, {
+        top: screen.availTop,
+        height: screen.height - prefs['content-height']
+      });
+      webext.windows.single({
+        url: 'data/editor/index.html',
+        width: win.width,
+        height: prefs['content-height'],
+        left: win.left,
+        top: screen.availTop + screen.height - 300,
+        type: 'popup'
+      });
     });
   }
   else {
@@ -111,6 +128,12 @@ var menu = () => {
       contexts: ['browser_action'],
       type: 'radio',
       checked: mode === 'window'
+    }, {
+      id: 'browser-mode-application-content',
+      title: 'Mode: Application Content',
+      contexts: ['browser_action'],
+      type: 'radio',
+      checked: mode === 'application-content'
     });
     webext.contextMenus.removeAll().then(() => webext.contextMenus.batch(items));
   });

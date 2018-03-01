@@ -7,6 +7,10 @@ sidebar.selected = {};
 // open and close
 {
   const element = document.getElementById('sidebar');
+  // theme
+  if (localStorage.getItem('skin') === 'charcoal') {
+    document.getElementById('sidebar-button').style.color = '#b5b9bf';
+  }
   // open
   document.getElementById('sidebar-button').addEventListener('click', () => {
     element.dataset.open = true;
@@ -21,6 +25,20 @@ sidebar.selected = {};
       }
     });
   });
+  sidebar.on('toggle', () => {
+    const bol = element.dataset.open === 'false';
+    element.dataset.open = bol;
+    sidebar.emit('open', bol);
+  });
+  document.addEventListener('keydown', ({ctrlKey, altKey, code}) => {
+    if (code === 'Escape' || (ctrlKey && altKey && code === 'KeyS')) {
+      const bol = code === 'Escape' ? false : element.dataset.open === 'false';
+      element.dataset.open = bol;
+      sidebar.emit('open', bol);
+    }
+  });
+  // focus editor
+  sidebar.on('open', () => editor.instance.focus()).if(b => b === false);
 }
 // content
 var tree = new VanillaTree('#tree', {
