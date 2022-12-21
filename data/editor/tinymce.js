@@ -1,17 +1,30 @@
-/* globals tinymce, EventEmitter, webext, sidebar, api */
+/* global tinymce, EventEmitter, sidebar, api */
 'use strict';
 
-var editor = new EventEmitter();
+const editor = new EventEmitter();
+
+function debounce(func, wait) {
+  let time = 0;
+  const context = this;
+
+  return function() {
+    const now = Date.now();
+    if (now - time > wait) {
+      func.apply(context, arguments);
+      time = now;
+    }
+  };
+}
 
 tinymce.init({
-  selector:'textarea',
+  selector: 'textarea',
   branding: false,
-  menu : {
-    notepad: {title : 'Notepad', items : 'skin | options | save'},
-    edit   : {title : 'Edit', items : 'undo redo | cut copy paste pastetext | selectall | searchreplace'},
-    insert : {title : 'Insert', items : 'insertdatetime | charmap | inserttable tableprops deletetable cell row column'},
-    view   : {title : 'View', items : 'visualaid'},
-    format : {title : 'Format', items : 'bold italic underline strikethrough superscript subscript code | formats | removeformat'}
+  menu: {
+    notepad: {title: 'Notepad', items: 'options | save'},
+    edit: {title: 'Edit', items: 'undo redo | cut copy paste pastetext | selectall | searchreplace'},
+    insert: {title: 'Insert', items: 'insertdatetime | charmap | inserttable tableprops deletetable cell row column'},
+    view: {title: 'View', items: 'visualaid'},
+    format: {title: 'Format', items: 'bold italic underline strikethrough superscript subscript code | formats | removeformat'}
   },
   paste_data_images: false,
   toolbar: 'undo redo | styleselect | bold italic | ' +
@@ -22,8 +35,7 @@ tinymce.init({
     'charmap searchreplace insertdatetime table lists advlist',
     'textcolor colorpicker code save'
   ],
-  skin: (localStorage.getItem('skin') || ''),
-  setup: function(editor) {
+  setup(editor) {
     // shortcuts
     editor.shortcuts.add('access+s', 'Toggle sidebar', () => sidebar.emit('toggle'));
     // menu
@@ -42,24 +54,8 @@ tinymce.init({
         });
       }
     });
-    editor.addMenuItem('skin', {
-      text: 'Skin',
-      menu:[{
-        text:'Default Skin',
-        onclick: () => {
-          localStorage.setItem('skin', '');
-          editor.windowManager.alert('Please close and reopen the editor.');
-        }
-      }, {
-        text:'Dark Skin',
-        onclick: () => {
-          localStorage.setItem('skin', 'charcoal');
-          editor.windowManager.alert('Please close and reopen the editor.');
-        }
-      }]
-    });
   },
-  save_onsavecallback: function () {
+  save_onsavecallback() {
     editor.write();
   }
 });
@@ -67,9 +63,9 @@ tinymce.on('AddEditor', e => {
   editor.instance = e.editor;
 
   e.editor.on('Init', e => {
-    webext.storage.get({
-      'selected-note': 'note--1',
-    }).then(prefs => {
+    chrome.storage.local.get({
+      'selected-note': 'note--1'
+    }, prefs => {
       const id = prefs['selected-note'];
       editor.update.content(id);
       editor.update.title(id);
@@ -92,7 +88,7 @@ editor.write = (
   id = editor.id,
   content = editor.instance.getContent(),
   bookmark = editor.instance.selection.getBookmark(2, true)
-) => new Promise(resolve => webext.runtime.sendMessage({
+) => new Promise(resolve => chrome.runtime.sendMessage({
   method: 'save-note',
   id,
   content: content,
@@ -103,7 +99,7 @@ editor.on('selection', () => {
   const id = editor.id;
   const bookmark = editor.instance.selection.getBookmark(2, true);
   if (bookmark && id) {
-    webext.runtime.sendMessage({
+    chrome.runtime.sendMessage({
       method: 'save-bookmark',
       id,
       bookmark
@@ -112,10 +108,10 @@ editor.on('selection', () => {
 });
 
 editor.update = {};
-editor.update.content = id => webext.storage.get({
+editor.update.content = id => chrome.storage.local.get({
   [id + '-content']: '',
-  [id + '-bookmark']: null,
-}).then(prefs => {
+  [id + '-bookmark']: null
+}, prefs => {
   const instance = editor.instance;
   if (editor.id && instance.isDirty()) {
     editor.instance.execCommand('mceSave');
@@ -147,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sidebar.on('selected', id => {
     editor.update.content(id);
     editor.update.title(id);
-    webext.storage.set({
+    chrome.storage.local.set({
       'selected-note': id
     });
   }).if(id => id.startsWith('note-') && id !== editor.id);

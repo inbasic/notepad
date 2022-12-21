@@ -9,22 +9,25 @@
 </head>
 <body>
   <!-- sidebar -->
-  <a id="sidebar-button"><span title="Press ctrl+alt+s on Mac and shift+alt+s on PC to open the sidebar">☰</span></a>
+  <svg id="sidebar-button" title="Press Ctrl + Alt + S on Mac and Shift + Alt + S on PC to open the sidebar" height="35" viewBox="0 0 512 512">
+    <line x1="102" x2="410" y1="256" y2="256" stroke-width="44" stroke="#595959"/>
+    <line x1="102" x2="410" y1="176" y2="176" stroke-width="44" stroke="#595959"/>
+    <line x1="102" x2="410" y1="336" y2="336" stroke-width="44" stroke="#595959"/>
+  </svg>
   <div id="sidebar" data-open=false vbox>
-    <div data-id="toolbox" hbox>
-      &nbsp;<input type="button" value="New Note" data-cmd="new-note">
-      &nbsp;<input type="button" value="New Notebook" data-cmd="new-notebook">
-      &nbsp;<input type="button" value="Delete" data-cmd="delete" disabled="true">
+    <div data-id="toolbox" hbox pack="center" align="center">
+      <input type="button" value="New Note" data-cmd="new-note">
+      <input type="button" value="New Notebook" data-cmd="new-notebook">
+      <input type="button" value="Delete" data-cmd="delete" disabled="true">
     </div>
     <div id="tree" flex="1"></div>
-    <fieldset data-id="details">
-        <legend>details:</legend>
-        <form hbox align=center>
-          name:&nbsp;
-          <input type="textbox" data-id="name" flex="1">&nbsp;
-          <input type="submit" value="Save" disabled="true">
-        </form>
-      </fieldset>
+    <div data-id="details">
+      <form hbox align=center>
+        <span>name</span>
+        <input type="textbox" data-id="name" flex="1">
+        <input type="submit" value="Save" disabled="true">
+      </form>
+    </div>
   </div>
   <!-- editor -->
   <textarea data-visible=false></textarea>
@@ -34,11 +37,7 @@
 
   <script src="vanillatree/vanillatree.js"></script>
 
-  <script src="../../webext/utils/EventEmitter.js"></script>
-  <script src="../../webext/utils/debounce.js"></script>
-  <script src="../../webext/core/base.js"></script>
-  <script src="../../webext/core/chrome.storage.js"></script>
-  <script src="../../webext/core/chrome.runtime.js"></script>
+  <script src="EventEmitter.js"></script>
   <script src="api.js"></script>
   <script src="tinymce.js"></script>
   <script src="sidebar.js"></script>

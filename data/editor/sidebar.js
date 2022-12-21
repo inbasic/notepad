@@ -1,7 +1,7 @@
-/* globals VanillaTree, editor, webext, EventEmitter, api */
+/* globals VanillaTree, editor, EventEmitter, api */
 'use strict';
 
-var sidebar = new EventEmitter();
+const sidebar = new EventEmitter();
 sidebar.selected = {};
 
 // open and close
@@ -41,22 +41,22 @@ sidebar.selected = {};
   sidebar.on('open', () => editor.instance.focus()).if(b => b === false);
 }
 // content
-var tree = new VanillaTree('#tree', {
-  placeholder: 'to prevent losing your content, create a new note right now.',
+const tree = new VanillaTree('#tree', {
+  placeholder: 'to prevent losing your content, create a new note right now.'
 });
 sidebar.root = tree.tree;
 
-sidebar.notes = () => webext.storage.get({
+sidebar.notes = () => new Promise(resolve => chrome.storage.local.get({
   selected: 'note--1',
   headers: [{
     name: 'First note',
     id: 'note--1',
     selected: true
   }]
-}).then(({headers, selected}) => headers.map(h => {
+}, ({headers, selected}) => resolve(headers.map(h => {
   h.selected = h.id === selected;
   return h;
-}));
+}))));
 
 sidebar.save = (...changes) => sidebar.notes().then(headers => {
   // update existing headers
@@ -73,7 +73,7 @@ sidebar.save = (...changes) => sidebar.notes().then(headers => {
     headers.push(h);
   });
 
-  return webext.storage.set({
+  return chrome.storage.local.set({
     headers
   });
 });
@@ -87,7 +87,7 @@ sidebar.once('open', () => sidebar.notes().then(headers => {
     i += 1;
     const header = headers.shift();
     if (header) {
-      if (i > max) {  // if parent is not detected, add to root
+      if (i > max) { // if parent is not detected, add to root
         delete header.parent;
       }
       if (header.parent && !sidebar.cache[header.parent]) {
@@ -118,7 +118,7 @@ sidebar.once('open', () => sidebar.notes().then(headers => {
 sidebar.root.addEventListener('vtree-select', ({detail}) => {
   sidebar.selected = sidebar.cache[detail.id] || {};
   sidebar.emit('selected', detail.id);
-  webext.storage.set({
+  chrome.storage.local.set({
     selected: detail.id
   });
 });
@@ -182,11 +182,11 @@ sidebar.delete.note = (id = sidebar.selected.id, del = true) => {
     sidebar.notes().then(headers => {
       delete sidebar.cache[id];
       if (del) {
-        webext.storage.set({
+        chrome.storage.local.set({
           headers: headers.filter(h => h.id !== id)
         });
       }
-      webext.runtime.sendMessage({
+      chrome.runtime.sendMessage({
         method: 'delete-note',
         id
       });
@@ -221,7 +221,7 @@ sidebar.delete.notebook = (id = sidebar.selected.id) => {
     const notes = ids.filter(i => i.startsWith('note-'));
 
     sidebar.notes().then(headers => {
-      webext.storage.set({
+      chrome.storage.local.set({
         headers: headers.filter(h => notebooks.indexOf(h.id) === -1 && notes.indexOf(h.id) === -1)
       });
     });
@@ -323,3 +323,7 @@ api.note.get = id => {
     return empty;
   }
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.dataset.ready = true;
+});

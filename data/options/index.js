@@ -1,4 +1,4 @@
-/* globals mscConfirm */
+/* global mscConfirm */
 
 'use strict';
 
@@ -31,16 +31,14 @@ document.getElementById('export').addEventListener('click', () => chrome.storage
   Object.assign(document.createElement('a'), {
     href: objectURL,
     type: 'application/json',
-    download: 'my-notes.json',
+    download: 'my-notes.json'
   }).dispatchEvent(new MouseEvent('click'));
   setTimeout(() => URL.revokeObjectURL(objectURL));
 }));
 
 function close() {
-  chrome.runtime.getBackgroundPage(b => {
-    b.ports.forEach(p => p.postMessage({
-      method: 'close'
-    }));
+  chrome.runtime.sendMessage({
+    method: 'close'
   });
 }
 

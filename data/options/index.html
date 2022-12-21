@@ -1,47 +1,48 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Notepad :: Options</title>
-    <link rel="stylesheet" href="../editor/medium-style-confirm/css/msc-style.css"/>
-  </head>
-  <style type="text/css">
-    textarea {
-      width: 100%;
-    }
-    .block:not(:first-child) {
-      display: inline-block;
-      margin-top: 10px;
-    }
-    ul {
-      padding: 0;
-      margin-top: 10px;
-      border-top: dashed 1px #ccc;
-      padding-top: 10px;
-    }
-  </style>
-  <body>
-    <span class="block">Apply the following styles to the editor (e.g.: <code>color: red !important</code>):</span>
-    <textarea id="editor-css" rows="3"></textarea>
-    <span class="block">Apply the following CSS rules to the root element:</span>
-    <textarea id="root-css" rows="3"></textarea>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notepad :: Options</title>
+  <link rel="stylesheet" href="../editor/medium-style-confirm/css/msc-style.css"/>
+</head>
+<style type="text/css">
+  textarea {
+    width: 100%;
+  }
+  .block:not(:first-child) {
+    display: inline-block;
+    margin-top: 10px;
+  }
+  ul {
+    padding: 0;
+    margin-top: 10px;
+    border-top: dashed 1px #ccc;
+    padding-top: 10px;
+  }
+</style>
+<body>
+  <span class="block">Apply the following styles to the editor (e.g.: <code>color: red !important</code>):</span>
+  <textarea id="editor-css" rows="3"></textarea>
+  <span class="block">Apply the following CSS rules to the root element:</span>
+  <textarea id="root-css" rows="3"></textarea>
 
-    <p>
-      <input type="button" value="Support Development" id="support">
-      <input type="button" value="Open in Page" id="open">
-      <input type="button" value="Save" id="save">
-      <span id="info"></span>
-    </p>
-    <p>
-      <input type="button" value="Export notes" id="export">
-      <input type="button" value="Append notes" id="import"><sup>1</sup>
-      <input type="button" value="Reset" id="reset"><sup>2</sup>
-    </p>
-    <ul>
-      <li>1: In Firefox browser, if the internal popup blocker prevents the browse window to appear, open the options page in a browser tab using the "Open in Page" button and then append notes</li>
-      <li>2: All the saved notes will be deleted. There is no undo for this action.</li>
-    </ul>
-  </body>
+  <p>
+    <input type="button" value="Support Development" id="support">
+    <input type="button" value="Open in Page" id="open">
+    <input type="button" value="Save" id="save">
+    <span id="info"></span>
+  </p>
+  <p>
+    <input type="button" value="Export notes" id="export">
+    <input type="button" value="Append notes" id="import"><sup>1</sup>
+    <input type="button" value="Reset" id="reset"><sup>2</sup>
+  </p>
+  <ul>
+    <li>1: In Firefox browser, if the internal popup blocker prevents the browse window to appear, open the options page in a browser tab using the "Open in Page" button and then append notes</li>
+    <li>2: All the saved notes will be deleted. There is no undo for this action.</li>
+  </ul>
   <script src="../editor/medium-style-confirm/js/msc-script.js" async></script>
   <script src="index.js"></script>
+</body>
 </html>
